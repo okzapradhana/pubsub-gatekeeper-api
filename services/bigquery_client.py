@@ -133,11 +133,19 @@ class BigQueryClient():
 
     def delete(self, table, values, **schema):
         column_names = schema['column_names']
+        print(column_names)
+        current_table_column = self.get_table_columns(table)
+        column_differences = set(column_names).symmetric_difference(
+            set(current_table_column))
+        print(column_differences)
+        if len(list(column_differences)) > 0:
+            raise ValueError("Column {} are not exist!".format(
+                ', '.join(column_differences)))
+
         where_clause = ' AND '.join([f"{name} = {value}"
-                                    if isinstance(value, int) else f"{name} = '{value}'"
+                                    if isinstance(value, int)
+                                    else f"{name} = '{value}'"
                                     for name, value in zip(column_names, values)])
-        print(where_clause)
-        # try:
         delete_query = (f'''
             DELETE FROM `{self.project_id}.{self.dataset_id}.{table}`
             WHERE {where_clause}
@@ -146,6 +154,24 @@ class BigQueryClient():
         print("Delete result: ", results)
         if isinstance(results, _EmptyRowIterator):
             print("Empty Row Result!")
-        # except Exception as error:
-        #     print("Exception ini boss")
-        #     raise BaseException(f"DROP TABLE failed: {error}")
+
+
+def process(transactions):
+    bq = BigQueryClient()
+    for activity in transactions['activities']:
+        print(activity['operation'])
+        table = activity['table']
+        if activity['operation'] == 'insert':
+            values = activity['col_values']
+            bq.insert(
+                table,
+                values,
+                column_names=activity['col_names'], column_types=activity['col_types'])
+        elif activity['operation'] == 'delete':
+            print(activity['operation'])
+            values = activity['value_to_delete']['col_values']
+            bq.delete(
+                table,
+                values,
+                column_names=activity['value_to_delete']['col_names'],
+                column_types=activity['value_to_delete']['col_types'])

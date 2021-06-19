@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, Response
-from validator import validate_payload
-from services import publisher
+from google.api_core.exceptions import BadRequest
+from validator.main import validate_payload
 import wtforms
 import json
 import os
@@ -17,9 +17,11 @@ def say_hello():
 def processor():
     print(request.get_json())
     is_valid = validate_payload(request)
-    message = json.dumps(request.get_json()).encode('utf-8')
-    print(publisher.push(message))
-    return Response('Success', 200)
+    return jsonify({
+        'status': 200,
+        'is_schema_valid': is_valid,
+        'message': 'Schema is valid and the data has been pushed to PubSub Topic'
+    })
 
 
 @app.errorhandler(wtforms.validators.ValidationError)
@@ -31,6 +33,11 @@ def onValidationError(err):
     '''
     print("Masuk ke onValidationError")
     return Response(f"Validation Error: {str(err)}", 400)
+
+
+@app.errorhandler(BadRequest)
+def onBadRequestError(err):
+    return f'Bad Request! {err}', 400
 
 
 if __name__ == "__main__":
