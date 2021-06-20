@@ -22,10 +22,12 @@ def callback(message):
         print(f"Bad Request {error.code}: {error.message}")
     except GoogleAPIError as error:
         print(f"GoogleAPIError: {error}")
-    except Exception as error:
-        print(f"Exception at: {error}")
+    except ValueError as error:
+        print(f"Value Error: {error}")
     except TypeError as error:
-        print(f"Type error at: {error}")
+        print(f"Type Error: {error}")
+    except Exception as error:
+        print(f"Exception message: {error}")
     message.ack()
     print(f'Message {message} has been acknowledged')
 

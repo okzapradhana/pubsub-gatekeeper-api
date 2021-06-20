@@ -1,21 +1,24 @@
+from re import M
+
+
 def get_schema():
     return {
+        "$schema": "http://json-schema.org/draft/2019-09/schema#",
         "type": "object",
         "properties": {
             "activities": {
                 "type": "array",
                 "items": {
                     "anyOf": [
-                      {
-                          "$ref": "#/definitions/insert"
-                      },
                         {
-                          "$ref": "#/definitions/delete"
-                      }
+                            "$ref": "#/definitions/delete"
+                        },
+                        {
+                            "$ref": "#/definitions/insert"
+                        }
                     ]
                 },
-                "minItems": 1
-            }
+            },
         },
         "definitions": {
             "insert": {
@@ -25,23 +28,27 @@ def get_schema():
                         "const": "insert"
                     },
                     "table": {
-                        "type": "string"
+                        "type": "string",
+                        "minLength": 1
                     },
                     "col_names": {
                         "type": "array",
                         "items": {
                             "type": "string"
-                        }
+                        },
+                        "minLength": 1
                     },
                     "col_types": {
                         "type": "array",
                         "items": {
                             "type": "string"
-                        }
+                        },
+                        "minLength": 1
                     },
                     "col_values": {
-                        "type": "array"
-                    }
+                        "type": "array",
+                        "minLength": 1
+                    },
                 },
                 "required": [
                     "operation",
@@ -55,10 +62,11 @@ def get_schema():
                 "type": "object",
                 "properties": {
                     "operation": {
-                        "const": "delete"
+                        "const": "delete",
                     },
                     "table": {
-                        "type": "string"
+                        "type": "string",
+                        "minLength": 1
                     },
                     "value_to_delete": {
                         "type": "object",
@@ -67,16 +75,19 @@ def get_schema():
                                 "type": "array",
                                 "items": {
                                     "type": "string"
-                                }
+                                },
+                                "minLength": 1
                             },
                             "col_types": {
                                 "type": "array",
                                 "items": {
                                     "type": "string"
-                                }
+                                },
+                                "minLength": 1
                             },
                             "col_values": {
-                                "type": "array"
+                                "type": "array",
+                                "minLength": 1
                             }
                         },
                         "required": [

@@ -13,9 +13,8 @@ class TransactionMessageInputs(Inputs):
 
 def validate_payload(request):
     inputs = TransactionMessageInputs(request)
-    try:
-        if inputs.validate():
-            message = json.dumps(request.get_json()).encode('utf-8')
-            publisher.push(message)
-    except ValidationError:
+    if inputs.validate():
+        message = json.dumps(request.get_json()).encode('utf-8')
+        publisher.push(message)
+    else:
         raise ValidationError(inputs.errors)

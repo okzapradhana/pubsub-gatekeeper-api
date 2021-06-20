@@ -1,3 +1,4 @@
+from google.api_core.exceptions import GoogleAPIError
 from google.cloud import bigquery
 import os
 import re
@@ -22,18 +23,18 @@ class BigQueryClient():
             [boolean]: [True if the table exist and False if the table doesn't exist]
         """
         check_query = (f'''
-            SELECT COUNT(1) as cnt
+            SELECT COUNT(1) as count
             FROM `{self.project_id}.{self.dataset_id}.__TABLES_SUMMARY__`
             WHERE table_id='{table}'
         ''')
         results = self.run_query(check_query)
         data = results.next()
-        if data.cnt > 0:
-            return True
-        else:
-            return False
+
+        if data.count == 0:
+            raise ValueError(f"Table {table} is not exist!")
 
     def get_table_columns(self, table):
+        self.check_table(table)
         columns_query = (f'''
             SELECT
                 column_name
@@ -47,20 +48,17 @@ class BigQueryClient():
 
     def insert(self, table, values, **schema):
         self.create_table_if_not_exists(table, schema)
-        column_names = self.get_table_columns(table)
         self.alter_table_column_if_not_exists(table, schema)
         rows = str(tuple(values))
         columns = f"{','.join(schema['column_names'])}"
 
-        # Insert values to table
         insert_query = (f'''
             INSERT `{self.project_id}.{self.dataset_id}.{table}` ({columns})
             VALUES{rows}
 
         ''')
-        print("Insert Query: \n", insert_query)
+
         results = self.run_query(insert_query)
-        print("Insert result: ", results)
 
     def run_query(self, query_str):
         query_job = self.client.query(query_str)
@@ -127,20 +125,27 @@ class BigQueryClient():
             ({ paired_schema })
             '''
                             )
-
         results = self.run_query(create_tbl_query)
         print(results)
 
     def delete(self, table, values, **schema):
+        self.check_table(table)
         column_names = schema['column_names']
-        print(column_names)
+
         current_table_column = self.get_table_columns(table)
         column_differences = set(column_names).symmetric_difference(
             set(current_table_column))
-        print(column_differences)
+
         if len(list(column_differences)) > 0:
-            raise ValueError("Column {} are not exist!".format(
-                ', '.join(column_differences)))
+            raise ValueError("Column {} are not exist in table {}!".format(
+                ', '.join(column_differences), table))
+
+        '''
+            TODO:   
+                    setup grafana prometheus native and scrap from http endpoint
+                    unit test --> just test schema for now
+                    load test
+        '''
 
         where_clause = ' AND '.join([f"{name} = {value}"
                                     if isinstance(value, int)
@@ -151,15 +156,15 @@ class BigQueryClient():
             WHERE {where_clause}
         ''')
         results = self.run_query(delete_query)
-        print("Delete result: ", results)
+
         if isinstance(results, _EmptyRowIterator):
             print("Empty Row Result!")
 
 
 def process(transactions):
     bq = BigQueryClient()
+
     for activity in transactions['activities']:
-        print(activity['operation'])
         table = activity['table']
         if activity['operation'] == 'insert':
             values = activity['col_values']
@@ -168,7 +173,6 @@ def process(transactions):
                 values,
                 column_names=activity['col_names'], column_types=activity['col_types'])
         elif activity['operation'] == 'delete':
-            print(activity['operation'])
             values = activity['value_to_delete']['col_values']
             bq.delete(
                 table,

@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify, Response
 from google.api_core.exceptions import BadRequest
 from validator.main import validate_payload
+from http import HTTPStatus
 import wtforms
-import json
 import os
 app = Flask(__name__)
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/chapmon/bootcamps/blank-space-de-batch1/week-4/script/keyfile.json'
@@ -14,13 +14,15 @@ def say_hello():
 
 
 @app.route("/api/activities", methods=["POST"])
-def processor():
+def handler():
     print(request.get_json())
-    is_valid = validate_payload(request)
+    validate_payload(request)
+
     return jsonify({
-        'status': 200,
-        'is_schema_valid': is_valid,
-        'message': 'Schema is valid and the data has been pushed to PubSub Topic'
+        'status': HTTPStatus.OK.value,
+        'payload': request.get_json(),
+        'message': 'Valid Schema',
+        'error': None
     })
 
 
@@ -31,8 +33,13 @@ def onValidationError(err):
         Create CSV/JSON
         Push log ke Grafana dengan tag invalid_schema
     '''
-    print("Masuk ke onValidationError")
-    return Response(f"Validation Error: {str(err)}", 400)
+
+    return jsonify({
+        'status': HTTPStatus.BAD_REQUEST.value,
+        'payload': request.get_json(),
+        'message': 'Invalid Schema',
+        'error': str(err)
+    })
 
 
 @app.errorhandler(BadRequest)
