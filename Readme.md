@@ -48,7 +48,19 @@ Realtime data transport from Backend Team that sends JSON payload to BigQuery as
    ```
 
 ## Testing
+  ### Functional Test
    To perform functional testing on this project. Simply run:
    ```
    pytest
    ```
+  ### Load Test
+  This project is using locust to perform performance test. To run this, open your terminal and execute this command:
+  ```
+  locust
+  ```
+  Then go to http://localhost:8089 and set
+  1. Max users
+  2. Spawn user per second
+  3. Host 
+  
+  Locust tutorial: https://docs.locust.io/en/stable/what-is-locust.html
