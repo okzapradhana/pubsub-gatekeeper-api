@@ -140,15 +140,7 @@ class BigQueryClient():
             raise ValueError("Column {} are not exist in table {}!".format(
                 ', '.join(column_differences), table))
 
-        '''
-            TODO:   
-                    setup grafana prometheus native and scrap from http endpoint
-                    unit test --> just test schema for now
-                    load test
-        '''
-
-        where_clause = ' AND '.join([f"{name} = {value}"
-                                    if isinstance(value, int)
+        where_clause = ' AND '.join([f"{name} = {value}" if isinstance(value, int)
                                     else f"{name} = '{value}'"
                                     for name, value in zip(column_names, values)])
         delete_query = (f'''
@@ -171,7 +163,8 @@ def process(transactions):
             bq.insert(
                 table,
                 values,
-                column_names=activity['col_names'], column_types=activity['col_types'])
+                column_names=activity['col_names'],
+                column_types=activity['col_types'])
         elif activity['operation'] == 'delete':
             values = activity['value_to_delete']['col_values']
             bq.delete(

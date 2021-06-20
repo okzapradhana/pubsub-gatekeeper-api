@@ -29,6 +29,7 @@ def callback(message):
     except Exception as error:
         print(f"Exception message: {error}")
     message.ack()
+
     print(f'Message {message} has been acknowledged')
 
 
