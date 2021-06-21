@@ -1,10 +1,14 @@
+from google.cloud.bigquery.table import _EmptyRowIterator
 from google.api_core.exceptions import GoogleAPIError
 from google.cloud import bigquery
+from dotenv import load_dotenv
 import os
 import re
+import logging
+load_dotenv()
 
-from google.cloud.bigquery.table import _EmptyRowIterator
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/chapmon/bootcamps/blank-space-de-batch1/week-4/script/keyfile.json'
+
+os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
 
 class BigQueryClient():
@@ -75,7 +79,6 @@ class BigQueryClient():
 
         query_job = self.client.query(alter_table_query)
         results = query_job.result()
-        print(results)
 
     def generate_pair_schema(self, operation, schema):
         paired_schema = ''
@@ -126,7 +129,6 @@ class BigQueryClient():
             '''
                             )
         results = self.run_query(create_tbl_query)
-        print(results)
 
     def delete(self, table, values, **schema):
         self.check_table(table)
@@ -150,7 +152,7 @@ class BigQueryClient():
         results = self.run_query(delete_query)
 
         if isinstance(results, _EmptyRowIterator):
-            print("Empty Row Result!")
+            logging.warning("Empty Row Result!")
 
 
 def process(transactions):

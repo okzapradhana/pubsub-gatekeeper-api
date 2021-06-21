@@ -3,15 +3,18 @@ from google.api_core.exceptions import BadRequest
 from prometheus_client.utils import INF
 from validator.main import validate_payload
 from http import HTTPStatus
+from dotenv import load_dotenv
 import prometheus_client
 from prometheus_client.core import CollectorRegistry
 from prometheus_client import Summary, Counter, Histogram, Gauge
 import wtforms
 import os
 import time
-app = Flask(__name__)
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/chapmon/bootcamps/blank-space-de-batch1/week-4/script/keyfile.json'
 
+load_dotenv()
+os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+
+app = Flask(__name__)
 graphs = {}
 graphs['c'] = Counter('python_request_operations_total',
                       'The total number of processed requests')
@@ -40,7 +43,6 @@ def count_requests():
 
 @app.route("/api/activities", methods=["POST"])
 def handler():
-    print(request.get_json())
     validate_payload(request)
 
     return jsonify({

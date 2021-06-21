@@ -1,13 +1,11 @@
 from google.cloud import pubsub_v1
-from dotenv import load_dotenv
 import os
 import logging
-load_dotenv()
-os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/chapmon/bootcamps/blank-space-de-batch1/week-4/script/keyfile.json'
 
 pub = pubsub_v1.PublisherClient()
-PROJECT_ID = os.getenv('PROJECT_ID')
-TOPIC_ID = os.getenv('TOPIC_ID')
+PROJECT_ID = 'static-gravity-312212'
+TOPIC_ID = 'db-transaction-topic'
 topic_path = pub.topic_path(PROJECT_ID, TOPIC_ID)
 
 
