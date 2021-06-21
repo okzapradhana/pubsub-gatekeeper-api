@@ -2,6 +2,7 @@ from google.api_core.exceptions import BadRequest, GoogleAPIError
 from google.cloud import pubsub_v1
 from concurrent.futures import TimeoutError
 from dotenv import load_dotenv
+from pubsub import PubSubClient
 import bigquery_client
 import json
 import os
@@ -12,8 +13,7 @@ load_dotenv()
 os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 PROJECT_ID = os.getenv('PROJECT_ID')
 SUBSCRIPTION_ID = os.getenv('SUBSCRIPTION_ID')
-TIMEOUT = 10
-subscription_path = sub.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
+client = PubSubClient(PROJECT_ID, SUBSCRIPTION_ID)
 
 
 def callback(message):
@@ -37,8 +37,8 @@ def callback(message):
     logging.info(f'Message {message} has been acknowledged!')
 
 
-streaming_pull = sub.subscribe(subscription_path, callback=callback)
-logging.info(f"Listening message on {subscription_path}... \n")
+streaming_pull = client._subscribe(callback=callback)
+logging.info(f"Listening message... \n")
 
 with sub:
     try:
