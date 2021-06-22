@@ -45,7 +45,7 @@ Points your `GOOGLE_APPLICATION_CREDENTIALS` to your service account file path.
    ```
    ./pubsub.sh
    ```
-3. Be sure that you **MUST** [create/download your Service Account](https://cloud.google.com/iam/docs/creating-managing-service-accounts) because that needed by `GOOGLE_APPLICATION_CREDENTIALS` variable at `services/` folder.
+3. Be sure that you **MUST** [create/download your Service Account](https://cloud.google.com/iam/docs/creating-managing-service-accounts) and points your `GOOGLE_APPLICATION_CREDENTIALS` to the downloaded service account path.
 
 ## How To Use
 1. Run the flask APP by:
