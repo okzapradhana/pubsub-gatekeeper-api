@@ -23,6 +23,18 @@ Realtime data transport from Backend Team that sends JSON payload to BigQuery as
    pip install -r requirements.txt
    ```
 
+### Environment Variables
+Create `.env` on root of your project directory that corresponds to `.env.example` in this repository which are:
+```
+GOOGLE_APPLICATION_CREDENTIALS=
+PROJECT_ID=
+DATASET_ID=
+TOPIC_ID=
+SUBSCRIPTION_ID=
+```
+**Note:**<br>
+Points your `GOOGLE_APPLICATION_CREDENTIALS` to your service account file path.
+
 ### Google Cloud
 1. Install [gcloud](https://cloud.google.com/sdk/docs/quickstart) if you haven't installed it yet.
 2. Simply run the bash script named `pubsub.sh` to create the topic and subscriber which will subscribe/listen to created topic/
