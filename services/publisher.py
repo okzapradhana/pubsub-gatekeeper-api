@@ -1,8 +1,10 @@
 from dotenv import load_dotenv
-from pubsub import PubSubClient
+from services.pubsub import PubSubClient
 import os
 import logging
+
 load_dotenv()
+
 os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
 PROJECT_ID = os.getenv('PROJECT_ID')

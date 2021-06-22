@@ -1,21 +1,25 @@
-from google.cloud.bigquery.table import _EmptyRowIterator
-from google.api_core.exceptions import GoogleAPIError
 from google.cloud import bigquery
 from dotenv import load_dotenv
+from queue import Queue
 import os
 import re
 import logging
-load_dotenv()
 
+load_dotenv()
 
 os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
+INSERT_OPERATION = 'insert'
+DELETE_OPERATION = 'delete'
+
 
 class BigQueryClient():
-    def __init__(self):
+
+    def __init__(self, project_id, dataset_id):
         self.client = bigquery.Client()
-        self.project_id = 'static-gravity-312212'
-        self.dataset_id = 'dataset_api'
+        self.project_id = project_id
+        self.dataset_id = dataset_id
+        self.queue = Queue(maxsize=0)  # maxsize = 0 means infinite items
 
     def check_table(self, table):
         """Check existence of a table in BigQuery
@@ -62,7 +66,10 @@ class BigQueryClient():
 
         ''')
 
-        results = self.run_query(insert_query)
+        self.client.query(insert_query, job_config=self.job_config)
+
+        # Commit query by enqueue it if Dry Run Queue produces no error
+        self.commit(insert_query)
 
     def run_query(self, query_str):
         query_job = self.client.query(query_str)
@@ -77,8 +84,28 @@ class BigQueryClient():
             {paired_schema}
         ''')
 
-        query_job = self.client.query(alter_table_query)
-        results = query_job.result()
+        self.run_query(alter_table_query)
+
+    def execute(self):
+        while self.queue.qsize() > 0:
+            logging.warning(f"Queue Size: {self.queue.qsize()}")
+            query = self.queue.get()
+
+            self.run_query(query)
+            self.queue.task_done()
+
+        logging.warning("All queries have been executed")
+
+    def commit(self, query):
+        self.queue.put(query)
+        logging.warning("Query has been added to queue")
+
+    def rollback(self):
+        with self.queue.mutex:
+            self.queue.queue.clear()
+
+        # Ensure that queue is empty
+        logging.debug(f'Is queue empty? {self.queue.empty()}')
 
     def generate_pair_schema(self, operation, schema):
         paired_schema = ''
@@ -128,49 +155,63 @@ class BigQueryClient():
             ({ paired_schema })
             '''
                             )
+
         results = self.run_query(create_tbl_query)
 
     def delete(self, table, values, **schema):
         self.check_table(table)
         column_names = schema['column_names']
 
-        current_table_column = self.get_table_columns(table)
-        column_differences = set(column_names).symmetric_difference(
-            set(current_table_column))
+        self.get_column_differences(table, column_names)
+        where_clause = self.generate_where_clause(column_names, values)
 
-        if len(list(column_differences)) > 0:
-            raise ValueError("Column {} are not exist in table {}!".format(
-                ', '.join(column_differences), table))
-
-        where_clause = ' AND '.join([f"{name} = {value}" if isinstance(value, int)
-                                    else f"{name} = '{value}'"
-                                    for name, value in zip(column_names, values)])
         delete_query = (f'''
             DELETE FROM `{self.project_id}.{self.dataset_id}.{table}`
             WHERE {where_clause}
         ''')
-        results = self.run_query(delete_query)
 
-        if isinstance(results, _EmptyRowIterator):
-            logging.warning("Empty Row Result!")
+        job_config = bigquery.QueryJobConfig(
+            dry_run=True, use_query_cache=False)
 
+        self.client.query(delete_query, job_config=job_config)
 
-def process(transactions):
-    bq = BigQueryClient()
+        # Commit query by enqueue it if Dry Run Queue produces no error
+        self.commit(delete_query)
 
-    for activity in transactions['activities']:
+    def get_column_differences(self, table, column_names):
+        current_table_column = self.get_table_columns(table)
+
+        if len(column_names) > len(current_table_column):
+            column_differences = set(column_names).symmetric_difference(
+                set(current_table_column))
+
+            raise ValueError("Column {} are not exist in table {}!".format(
+                ', '.join(column_differences), table))
+
+    def generate_where_clause(self, column_names, values):
+        where_clause = [f"{name} = {value}"
+                        if isinstance(value, int)
+                        else f"{name} = '{value}'"
+                        for name, value in zip(column_names, values)]
+
+        return ' AND '.join(where_clause)
+
+    def process(self, activity):
+        operation = activity['operation']
         table = activity['table']
-        if activity['operation'] == 'insert':
+
+        if operation == INSERT_OPERATION:
+            logging.warning("the message is an insert operation!")
+
             values = activity['col_values']
-            bq.insert(
-                table,
-                values,
-                column_names=activity['col_names'],
-                column_types=activity['col_types'])
-        elif activity['operation'] == 'delete':
+            self.insert(table, values,
+                        column_names=activity['col_names'],
+                        column_types=activity['col_types'])
+
+        elif operation == DELETE_OPERATION:
+            logging.warning("the message is a delete operation!")
+
             values = activity['value_to_delete']['col_values']
-            bq.delete(
-                table,
-                values,
-                column_names=activity['value_to_delete']['col_names'],
-                column_types=activity['value_to_delete']['col_types'])
+            self.delete(table, values,
+                        column_names=activity['value_to_delete']['col_names'],
+                        column_types=activity['value_to_delete']['col_types'])
