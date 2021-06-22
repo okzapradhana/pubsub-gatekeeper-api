@@ -1,12 +1,13 @@
 # Gatekeeper API with Google PubSub
 ## About
-Realtime data transport from Backend Team that sends JSON payload to BigQuery as the database. Those payloads **MUST** pass the gatekeeper's schema rule in order to can be processed to Database.
+Realtime data transport from Backend Team that sends JSON payload to BigQuery as the database. Those payloads **MUST** pass the gatekeeper's schema rule (specified in `validator/schema.py`) in order to can be processed to Database.
 
 
 ## Tech Stack:
 1. Python
 2. Flask
 3. Google PubSub
+4. Google BigQuery
 
 ## Setup
 ### Python

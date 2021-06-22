@@ -1,6 +1,3 @@
-from re import M
-
-
 def get_schema():
     return {
         "$schema": "http://json-schema.org/draft/2019-09/schema#",
