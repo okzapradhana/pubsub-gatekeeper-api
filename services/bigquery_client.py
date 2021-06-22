@@ -66,7 +66,10 @@ class BigQueryClient():
 
         ''')
 
-        self.client.query(insert_query, job_config=self.job_config)
+        job_config = bigquery.QueryJobConfig(
+            dry_run=True, use_query_cache=False)
+
+        self.client.query(insert_query, job_config=job_config)
 
         # Commit query by enqueue it if Dry Run Queue produces no error
         self.commit(insert_query)
@@ -181,10 +184,11 @@ class BigQueryClient():
     def get_column_differences(self, table, column_names):
         current_table_column = self.get_table_columns(table)
 
-        if len(column_names) > len(current_table_column):
-            column_differences = set(column_names).symmetric_difference(
-                set(current_table_column))
+        # Get differences column from column names in payload with column names in target table
+        column_differences = set(column_names).difference(
+            set(current_table_column))
 
+        if len(column_differences) > 0:
             raise ValueError("Column {} are not exist in table {}!".format(
                 ', '.join(column_differences), table))
 
