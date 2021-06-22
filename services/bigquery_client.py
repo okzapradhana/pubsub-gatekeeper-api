@@ -119,6 +119,7 @@ class BigQueryClient():
 
         if operation == 'alter':
             for index, (name, dtype) in enumerate(zip(column_names, column_types)):
+
                 # Default to Add Column because the constraint only Alter Adding Column
                 paired_schema += f'ADD COLUMN IF NOT EXISTS {name} {dtype}{"," if index != len(column_names)-1 else ""}'
         elif operation == 'create':
