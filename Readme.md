@@ -27,7 +27,7 @@ It is similar to CDC process that empowers message queue with help from Google P
    pip install -r requirements.txt
    ```
 ### Prometheus Pushgateway
-Prometheus pushgateway allows batch jobs to expose their metrics to Prometheus. Such as how many specific endpoint got hit, how many valid and invalid payload request that sent to the endpoint, etc.
+Prometheus pushgateway allows batch jobs to expose their metrics to Prometheus. Such as how many specific endpoint got hit, how many valid and invalid payload request that sent to the endpoint, etc. You can read more on [docs here](https://github.com/prometheus/pushgateway)
 
 First of all, you need to pull the image from [DockerHub](https://hub.docker.com/r/prom/pushgateway)
 
