@@ -26,6 +26,15 @@ It is similar to CDC process that empowers message queue with help from Google P
    ```
    pip install -r requirements.txt
    ```
+### Prometheus Pushgateway
+Prometheus pushgateway allows batch jobs to expose their metrics to Prometheus. Such as how many specific endpoint got hit, how many valid and invalid payload request that sent to the endpoint, etc.
+
+First of all, you need to pull the image from [DockerHub](https://hub.docker.com/r/prom/pushgateway)
+
+Then, how to run the pulled image? I included those steps on [How To Use](#how-to-use)
+```
+docker pull prom/pushgateway
+```
 
 ### Environment Variables
 Create `.env` on root of your project directory that corresponds to `.env.example` in this repository which are:
@@ -35,6 +44,7 @@ PROJECT_ID=
 DATASET_ID=
 TOPIC_ID=
 SUBSCRIPTION_ID=
+PUSHGATEWAY_PROMETHEUS_HOST=
 ```
 **Note:**<br>
 Points your `GOOGLE_APPLICATION_CREDENTIALS` to your service account file path.
@@ -62,7 +72,23 @@ Points your `GOOGLE_APPLICATION_CREDENTIALS` to your service account file path.
    ```
    python services/subscriber.py
    ```
+3. Run the docker image by:
+   ```
+   docker run -d -p 9091:9091 prom/pushgateway
+   ```
+   If the container is running as expected, you can access `localhost:9091` using your browser.
 
+   Then, fill the `PUSHGATEWAY_PROMETHEUS_HOST` variable with `localhost:9091` , you don't have to set `9091` as the port. You can change the port when running the image based on your needs.
+
+## Pushgateway Metrics Result
+
+1. How many valid payload that has been sent by hitting our API ?
+![valid-schema-count](images/Valid%20Payload%20Schema%20Metrics.png)
+
+2. How many invalid payload that has been sent by hitting our API ?
+![invalid-schema-count](images/Invalid%20Payload%20Schema%20Metrics.png)
+
+   As this two examples are not enough, this one is included in what can/should I improve on this project. 
 ## Testing
   ### Functional Test
    To perform functional testing on this project. Simply run:

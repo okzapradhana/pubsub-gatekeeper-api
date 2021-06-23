@@ -1,49 +1,43 @@
 from flask import Flask, request, jsonify, Response
 from google.api_core.exceptions import BadRequest
-from prometheus_client.utils import INF
+from prometheus_client.registry import CollectorRegistry
 from validator.main import validate_payload
 from http import HTTPStatus
 from dotenv import load_dotenv
-import prometheus_client
-from prometheus_client.core import CollectorRegistry
-from prometheus_client import Summary, Counter, Histogram, Gauge
+from prometheus_client import Summary, Counter, Histogram, Gauge, push_to_gateway
 import wtforms
 import os
-import time
 
 load_dotenv()
 os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+PUSHGATEWAY_PROMETHEUS_HOST = os.getenv('PUSHGATEWAY_PROMETHEUS_HOST')
 
 app = Flask(__name__)
-graphs = {}
-graphs['c'] = Counter('python_request_operations_total',
-                      'The total number of processed requests')
-graphs['h'] = Histogram('python_request_duration_seconds',
-                        'Histogram for the duration in seconds', buckets=(1, 2, 3, 5, 8, 13, 21, INF))
+registry = CollectorRegistry()
+invalid_payload_counter = Counter('invalid_payload_count',
+                                  'The total number of invalid payload request that hit /api/activities', registry=registry)
+
+valid_payload_registry = CollectorRegistry()
+valid_payload_counter = Counter('valid_payload_count',
+                                'The total number of payload request that hit /api/activities', registry=valid_payload_registry)
 
 
 @app.route("/")
 def say_hello():
-    start = time.time()
-    graphs['c'].inc()
-
-    # time.sleep(2)
-    end = time.time()
-    graphs['h'].observe(end - start)
+    g = Gauge('job_last_success_unixtime',
+              'Last time a batch job successfully finished', registry=registry)
+    g.set_to_current_time()
+    push_to_gateway(PUSHGATEWAY_PROMETHEUS_HOST,
+                    job='base_endpoint', registry=registry)
     return "Hello World, congratulations on installing Flask"
-
-
-@app.route("/metrics")
-def count_requests():
-    res = []
-    for _, val in graphs.items():
-        res.append(prometheus_client.generate_latest(val))
-    return Response(res, mimetype="text/plain")
 
 
 @app.route("/api/activities", methods=["POST"])
 def handler():
     validate_payload(request)
+    valid_payload_counter.inc()
+    push_to_gateway(PUSHGATEWAY_PROMETHEUS_HOST,
+                    job='valid_payload_schema', registry=valid_payload_registry)
 
     return jsonify({
         'status': HTTPStatus.OK.value,
@@ -55,6 +49,9 @@ def handler():
 
 @app.errorhandler(wtforms.validators.ValidationError)
 def onValidationError(err):
+    invalid_payload_counter.inc()
+    push_to_gateway(PUSHGATEWAY_PROMETHEUS_HOST,
+                    job='invalid_payload_schema', registry=registry)
 
     return jsonify({
         'status': HTTPStatus.BAD_REQUEST.value,
