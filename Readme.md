@@ -2,7 +2,7 @@
 ## About
 API endpoint to validate and process incoming message that comes from Backend Team to our Database. 
 
-Those payloads **MUST** pass the gatekeeper's schema rule (specified in `validator/schema.py`) in order to can be processed to Database.
+Those payloads **MUST** pass the gatekeeper's schema rule (specified in [`validator/schema.py`](./validator/schema.py)) in order to can be processed to Database.
 
 It is similar to CDC process that empowers message queue with help from Google PubSub. 
 
@@ -13,6 +13,12 @@ It is similar to CDC process that empowers message queue with help from Google P
 4. Google BigQuery
 
 ## Setup
+### Initial
+To use this project on your computer. You need to clone this repository first.
+```
+git clone https://github.com/okzapradhana/pubsub-gatekeeper-api.git
+```
+Then you may refer to [Python](#python) and [Prometheus](#prometheus-pushgateway) section
 ### Python
 1. Create your python virtual environment
    ```
@@ -106,3 +112,40 @@ Points your `GOOGLE_APPLICATION_CREDENTIALS` to your service account file path.
   3. Host 
   
   Locust tutorial: https://docs.locust.io/en/stable/what-is-locust.html
+
+## Explanation
+We have to create API endpoint which received message from Backend Team. The example of validated payload which has right structure is:
+```
+{
+    "activities": [
+        {
+            "operation": "delete",
+            "table": "table32",
+            "value_to_delete": {
+                "col_names": ["a", "c"],
+                "col_types": ["INTEGER", "TEXT"],
+                "col_values": [1, "2018-03-27 11:58:28.988414"]
+            }
+        },
+        {
+            "operation": "insert",
+            "table": "table32",
+            "col_names": ["a", "c"],
+            "col_types": ["INTEGER", "TEXT"],
+            "col_values": [1, "2018-03-27 11:58:28.988414"]
+        },
+    ]
+}
+```
+We're not just need to validate the payload schema to follows the right structure, but we also have to handle cases the operation logic. For example, we have to handle if the `table` is not available/exists when delete operation processed.
+
+As of the requirement of this project is if the `table` is not exist on the Database, it will fail the entire transaction and output error. Note that **transaction** is the all operations inside the `activities` array. Thus it means that nothing operation happened. 
+
+**Naturally**, [BigQuery didn't support for multiple transaction statements](https://cloud.google.com/bigquery/docs/reference/standard-sql/data-manipulation-language#limitations). And transactions are fully support on transactional database such as PostgreSQL, MySQL. 
+
+Then, how to deal with this BigQuery limitations?
+
+### How to Handle Transactions in BigQuery
+In this project, I did something *hacky* to enable this features if we still want to use BigQuery as our Database. By utilize concept of [Queue](https://docs.python.org/3/library/queue.html) and [dry run query in BigQuery](https://cloud.google.com/bigquery/docs/dry-run-queries#performing_a_dry_run) I was able to *tweaking* BigQuery to perform transactions (commit & rollback) thus when there are errors in `delete` operation it will do rollback and do nothing on the BigQuery.
+
+If you wish to see more, I have implemented it on [`services/bigquery_client.py`](./services/bigquery_client.py)
