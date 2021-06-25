@@ -6,12 +6,25 @@ Those payloads **MUST** pass the gatekeeper's schema rule (specified in [`valida
 
 It is similar to CDC process that empowers message queue with help from Google PubSub. 
 
+## Architecture
+![archi](images/Architecture.png)
+From this architecture, it will receive payloads that comes from API request to our endpoint. Which need to validate by Flask + [jsonschema](https://json-schema.org/) . 
+
+If the payload is invalid, push the metrics to Pushgateway which can be pulled by Prometheus later.
+
+But if the payload is valid, besides push the metrics to Pushgateway it also publish the payload message to Topic with Google PubSub.
+
+Then some subscribers listen to specific topic and consumes message that published to that topic. Then, every message will be processed as a Database transaction either `delete` operation, `insert` operation or both. 
+
+But, naturally BigQuery doesn't support multiple statement transactions as it's not intend as transaction Database, thus how we handle this case? I've made implementation on that which you might see more in [here](#how-to-handle-transactions-in-bigquery)
+
+
 ## Tech Stack:
 1. Python
 2. Flask
 3. Google PubSub
 4. Google BigQuery
-
+5. Prometheus Pushgateway
 ## Setup
 ### Initial
 To use this project on your computer. You need to clone this repository first.
@@ -112,6 +125,12 @@ Points your `GOOGLE_APPLICATION_CREDENTIALS` to your service account file path.
   3. Host 
   
   Locust tutorial: https://docs.locust.io/en/stable/what-is-locust.html
+
+  **Load Test result**
+  ![locust-result](images/Locust%20Performance%20Testing%20max%201000%20user%20with%205%20user%20grow%20rate.png)
+
+  For load test I used maximum 1000 users with 5 users spawned per second (spawn rate)
+  
 
 ## Explanation
 We have to create API endpoint which received message from Backend Team. The example of validated payload which has right structure is:

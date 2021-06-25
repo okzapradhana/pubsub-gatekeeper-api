@@ -24,11 +24,12 @@ valid_payload_counter = Counter('valid_payload_count',
 
 @app.route("/")
 def say_hello():
+    base_registry = CollectorRegistry()
     g = Gauge('job_last_success_unixtime',
-              'Last time a batch job successfully finished', registry=registry)
+              'Last time a batch job successfully finished', registry=base_registry)
     g.set_to_current_time()
     push_to_gateway(PUSHGATEWAY_PROMETHEUS_HOST,
-                    job='base_endpoint', registry=registry)
+                    job='base_endpoint', registry=base_registry)
     return "Hello World, congratulations on installing Flask"
 
 
